@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Change Impact Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="index.html">Change Management</a>
+      <nav aria-label="Dashboard navigation">
+        <a href="#filters">Filters</a>
+        <a href="#records">Records</a>
+      </nav>
+    </header>
+
+    <main class="dashboard-shell" data-dashboard>
+      <section class="dashboard-header">
+        <div>
+          <p class="eyebrow">ServiceNow data</p>
+          <h1>Change Impact Dashboard</h1>
+        </div>
+        <div class="dashboard-actions">
+          <button class="button secondary" type="button" id="sampleDataButton">Sample data</button>
+          <button class="button primary" type="button" id="resetFiltersButton">Reset filters</button>
+        </div>
+      </section>
+
+      <section class="data-panel" aria-label="ServiceNow dump uploads">
+        <label class="upload-tile" for="changeFile">
+          <span>Change dump</span>
+          <strong id="changeFileName">Sample change records loaded</strong>
+          <input id="changeFile" type="file" accept=".csv,.json,application/json,text/csv" />
+        </label>
+        <label class="upload-tile" for="ticketFile">
+          <span>Incident / Problem dump</span>
+          <strong id="ticketFileName">Sample incident and problem records loaded</strong>
+          <input id="ticketFile" type="file" accept=".csv,.json,application/json,text/csv" />
+        </label>
+        <div class="data-status" id="dataStatus" role="status">Ready</div>
+      </section>
+
+      <section class="filter-band" id="filters" aria-label="Dashboard filters">
+        <div class="filter-field">
+          <label for="appFilter">Application</label>
+          <select id="appFilter"></select>
+        </div>
+        <div class="filter-field">
+          <label for="fromDateFilter">Change from</label>
+          <input id="fromDateFilter" type="datetime-local" />
+        </div>
+        <div class="filter-field">
+          <label for="toDateFilter">Change to</label>
+          <input id="toDateFilter" type="datetime-local" />
+        </div>
+        <div class="filter-field compact">
+          <label for="monthFilter">Month</label>
+          <select id="monthFilter"></select>
+        </div>
+        <div class="filter-field compact">
+          <label for="yearFilter">Year</label>
+          <select id="yearFilter"></select>
+        </div>
+        <div class="filter-field compact">
+          <label for="minImpactFilter">Min raised</label>
+          <input id="minImpactFilter" type="number" min="0" step="1" value="0" />
+        </div>
+        <div class="filter-field compact">
+          <label for="maxImpactFilter">Max raised</label>
+          <input id="maxImpactFilter" type="number" min="0" step="1" />
+        </div>
+        <div class="filter-field">
+          <label for="windowFilter">Impact window</label>
+          <select id="windowFilter">
+            <option value="24">24 hours</option>
+            <option value="72" selected>72 hours</option>
+            <option value="168">7 days</option>
+            <option value="720">30 days</option>
+            <option value="all">All after</option>
+          </select>
+        </div>
+        <div class="filter-field search-field">
+          <label for="searchFilter">Search</label>
+          <input id="searchFilter" type="search" placeholder="Change, app, summary, ticket" />
+        </div>
+        <fieldset class="type-toggle" aria-label="Raised record type">
+          <legend>Raised type</legend>
+          <label>
+            <input id="showIncidents" type="checkbox" checked />
+            Incidents
+          </label>
+          <label>
+            <input id="showProblems" type="checkbox" checked />
+            Problems
+          </label>
+        </fieldset>
+      </section>
+
+      <section class="metric-grid" aria-label="Dashboard summary">
+        <article class="metric-card">
+          <span>Changes</span>
+          <strong id="changesMetric">0</strong>
+        </article>
+        <article class="metric-card">
+          <span>Incidents raised</span>
+          <strong id="incidentsMetric">0</strong>
+        </article>
+        <article class="metric-card">
+          <span>Problems raised</span>
+          <strong id="problemsMetric">0</strong>
+        </article>
+        <article class="metric-card">
+          <span>Applications</span>
+          <strong id="appsMetric">0</strong>
+        </article>
+        <article class="metric-card accent">
+          <span>Highest impact</span>
+          <strong id="highestMetric">0</strong>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Grouped impact</p>
+              <h2>Impact by application</h2>
+            </div>
+            <span id="activeScope" class="panel-meta">All apps</span>
+          </div>
+          <div id="appImpactList" class="bar-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Sequence</p>
+              <h2>Change timeline</h2>
+            </div>
+            <span id="timelineScope" class="panel-meta">Latest first</span>
+          </div>
+          <div id="timelineList" class="timeline-list"></div>
+        </article>
+      </section>
+
+      <section class="panel table-panel" id="records">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Matched records</p>
+            <h2>Change records</h2>
+          </div>
+          <span id="resultCount" class="panel-meta">0 records</span>
+        </div>
+        <div class="table-wrap">
+          <table class="impact-table">
+            <thead>
+              <tr>
+                <th>Change</th>
+                <th>Application</th>
+                <th>Change date and time</th>
+                <th>Status</th>
+                <th>Incidents</th>
+                <th>Problems</th>
+                <th>Total raised</th>
+                <th>First raised after</th>
+                <th>Summary</th>
+              </tr>
+            </thead>
+            <tbody id="changeTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="detail-panel" id="detailPanel" hidden>
+        <div class="detail-header">
+          <div>
+            <p class="eyebrow">Selected change</p>
+            <h2 id="detailTitle">Change details</h2>
+          </div>
+          <button class="button small secondary" type="button" id="closeDetailButton">Close</button>
+        </div>
+        <div id="detailContent" class="detail-content"></div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
