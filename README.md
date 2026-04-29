@@ -4,10 +4,26 @@ Static dashboard for reviewing ServiceNow change records against incident and pr
 
 ## How to use
 
-1. Open `index.html` in a browser.
-2. Upload a ServiceNow change dump as CSV or JSON.
-3. Upload a ServiceNow incident/problem dump as CSV or JSON.
-4. Use the filters for application, change date and time, month, year, incident/problem count, record type, search text, and impact window.
+1. Start the local server with `node server.js`.
+2. Open `http://127.0.0.1:8060/` in a browser.
+3. The dashboard automatically loads `SN_Data.xlsx` from this project folder.
+4. Optionally upload another `.xlsx` workbook with the same sheet pattern.
+5. Use the filters for application, change date and time, month, year, incident/problem count, record type, search text, and impact window.
+
+## XLSX workbook format
+
+The default workbook path is:
+
+`C:\Users\sauvi\Documents\Project\change_management\SN_Data.xlsx`
+
+The workbook can contain these sheets:
+
+- `change_request`
+- `incident`
+- `problem`
+- `applications`
+
+The dashboard reads `change_request` as changes, then combines `incident` and `problem` into the raised-record feed.
 
 ## Expected data fields
 

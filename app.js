@@ -211,7 +211,17 @@
       "sys_id",
       "change_request"
     ],
-    ticketNumber: ["number", "incident", "problem", "ticket", "ticket_number", "record_number", "sys_id"],
+    ticketNumber: [
+      "number",
+      "incident",
+      "incident number",
+      "problem",
+      "problem number",
+      "ticket",
+      "ticket_number",
+      "record_number",
+      "sys_id"
+    ],
     relatedChange: [
       "change_request",
       "change request",
@@ -252,6 +262,8 @@
       "scheduled end",
       "work_end",
       "work end",
+      "implemented",
+      "resolved",
       "closed_at",
       "closed"
     ],
@@ -266,7 +278,7 @@
       "created on",
       "sys_created_on"
     ],
-    summary: ["short_description", "short description", "description", "summary", "title"],
+    summary: ["short_description", "short description", "description", "summary", "title", "root cause", "category"],
     status: ["state", "status", "phase"],
     type: ["type", "category", "record_type", "record type", "task_type", "task type"],
     owner: ["assigned_to", "assigned to", "owner", "assignment_group", "assignment group"],
@@ -285,8 +297,10 @@
     searchFilter: document.getElementById("searchFilter"),
     showIncidents: document.getElementById("showIncidents"),
     showProblems: document.getElementById("showProblems"),
+    workbookFile: document.getElementById("workbookFile"),
     changeFile: document.getElementById("changeFile"),
     ticketFile: document.getElementById("ticketFile"),
+    xlsxFileName: document.getElementById("xlsxFileName"),
     changeFileName: document.getElementById("changeFileName"),
     ticketFileName: document.getElementById("ticketFileName"),
     dataStatus: document.getElementById("dataStatus"),
@@ -323,6 +337,7 @@
     populateFilterOptions();
     wireEvents();
     render();
+    loadWorkbookFromServer();
   }
 
   function wireEvents() {
@@ -343,6 +358,7 @@
       element.addEventListener("change", render);
     });
 
+    elements.workbookFile.addEventListener("change", handleWorkbookUpload);
     elements.changeFile.addEventListener("change", () => handleFileUpload("changes"));
     elements.ticketFile.addEventListener("change", () => handleFileUpload("tickets"));
     elements.sampleDataButton.addEventListener("click", loadSampleData);
@@ -357,9 +373,71 @@
     rawTickets = [...sampleTickets];
     elements.changeFile.value = "";
     elements.ticketFile.value = "";
+    elements.workbookFile.value = "";
+    elements.xlsxFileName.textContent = "Sample data selected";
     elements.changeFileName.textContent = "Sample change records loaded";
     elements.ticketFileName.textContent = "Sample incident and problem records loaded";
     elements.dataStatus.textContent = "Sample data";
+    normalizeData();
+    populateFilterOptions();
+    render();
+  }
+
+  async function loadWorkbookFromServer() {
+    try {
+      elements.dataStatus.textContent = "Loading XLSX";
+      const response = await fetch("/api/sn-data", { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error(`Workbook load failed (${response.status})`);
+      }
+
+      const payload = await response.json();
+      applyWorkbookPayload(payload, "SN_Data.xlsx from project folder");
+    } catch (error) {
+      elements.dataStatus.textContent = "Sample data";
+    }
+  }
+
+  async function handleWorkbookUpload() {
+    const file = elements.workbookFile.files[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      elements.dataStatus.textContent = "Loading XLSX";
+      const response = await fetch("/api/sn-data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(errorPayload.error || `Workbook load failed (${response.status})`);
+      }
+
+      const payload = await response.json();
+      applyWorkbookPayload(payload, `${file.name} uploaded`);
+    } catch (error) {
+      elements.dataStatus.textContent = "XLSX error";
+      elements.xlsxFileName.textContent = error.message;
+    }
+  }
+
+  function applyWorkbookPayload(payload, label) {
+    rawChanges = Array.isArray(payload.changes) ? payload.changes : [];
+    rawTickets = Array.isArray(payload.tickets) ? payload.tickets : [];
+
+    elements.xlsxFileName.textContent = `${label} (${formatNumber(rawChanges.length)} changes, ${formatNumber(rawTickets.length)} raised records)`;
+    elements.changeFileName.textContent = `${formatNumber(rawChanges.length)} change records from workbook`;
+    elements.ticketFileName.textContent = `${formatNumber(rawTickets.length)} incident/problem records from workbook`;
+    elements.dataStatus.textContent = "XLSX loaded";
+
     normalizeData();
     populateFilterOptions();
     render();
@@ -637,6 +715,12 @@
 
     if (!text) {
       return null;
+    }
+
+    const serialNumber = Number(text);
+
+    if (!Number.isNaN(serialNumber) && serialNumber > 25569) {
+      return new Date((serialNumber - 25569) * 86400 * 1000);
     }
 
     const serviceNowDate = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
